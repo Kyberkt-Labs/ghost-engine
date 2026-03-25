@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T2: JSON Parse &amp; Render</title>
+</head>
+<body>
+  <h1>JSON → Table</h1>
+  <table id="output">
+    <thead><tr><th>Name</th><th>Score</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <p id="status">loading</p>
+
+  <script>
+    // Simulates a common pattern: parse JSON data and render into DOM.
+    var jsonData = '[{"name":"Alice","score":95},{"name":"Bob","score":82},{"name":"Carol","score":91}]';
+
+    var data = JSON.parse(jsonData);
+    var tbody = document.querySelector("#output tbody");
+
+    data.forEach(function (row) {
+      var tr = document.createElement("tr");
+
+      var tdName = document.createElement("td");
+      tdName.textContent = row.name;
+      tr.appendChild(tdName);
+
+      var tdScore = document.createElement("td");
+      tdScore.textContent = String(row.score);
+      tr.appendChild(tdScore);
+
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("status").textContent = "ready";
+    document.title = "Ghost T2: JSON Rendered";
+  </script>
+</body>
+</html>

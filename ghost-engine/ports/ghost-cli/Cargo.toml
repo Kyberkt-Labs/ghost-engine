@@ -1,0 +1,22 @@
+[package]
+name = "ghost-cli"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "CLI front-end for Ghost Engine's headless browser"
+
+[[bin]]
+name = "ghost"
+path = "src/main.rs"
+
+[features]
+default = ["headless-shell", "js-jit"]
+headless-shell = ["ghost-core/headless-shell"]
+js-jit = ["ghost-core/js-jit"]
+
+[dependencies]
+bpaf = { version = "0.9.24", features = ["derive"] }
+ghost-core = { path = "../ghost-core" }
+ghost-interceptor = { path = "../ghost-interceptor" }
+ghost-serializer = { path = "../ghost-serializer" }
+ghost-interact = { path = "../ghost-interact" }

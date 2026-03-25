@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T4: Animations</title>
+  <style>
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .spinner {
+      width: 50px; height: 50px; background: #3498db;
+      animation: spin 1s linear infinite;
+    }
+    .pulser {
+      width: 50px; height: 50px; background: #e74c3c;
+      animation: pulse 0.5s ease-in-out infinite;
+    }
+    .transition-box {
+      width: 100px; height: 100px; background: #2ecc71;
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+    .transition-box.active {
+      transform: scale(1.5) rotate(45deg);
+      background-color: #9b59b6;
+    }
+  </style>
+</head>
+<body>
+  <h1>CSS Animation Stress Test</h1>
+  <div id="container"></div>
+  <p id="count">0</p>
+
+  <script>
+    // Create many animated elements to stress the rendering pipeline.
+    var container = document.getElementById("container");
+    var total = 200;
+
+    for (var i = 0; i < total; i++) {
+      var el = document.createElement("div");
+      el.className = (i % 2 === 0) ? "spinner" : "pulser";
+      el.style.display = "inline-block";
+      el.style.margin = "2px";
+      container.appendChild(el);
+    }
+
+    // Also create transition elements and trigger them
+    for (var j = 0; j < 50; j++) {
+      var box = document.createElement("div");
+      box.className = "transition-box";
+      box.style.display = "inline-block";
+      box.style.margin = "2px";
+      container.appendChild(box);
+      // Trigger the transition after a frame
+      requestAnimationFrame(function(b) {
+        return function() { b.classList.add("active"); };
+      }(box));
+    }
+
+    document.getElementById("count").textContent = "elements:" + (total + 50);
+    document.title = "Ghost T4: Animations " + (total + 50);
+  </script>
+</body>
+</html>

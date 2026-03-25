@@ -1,0 +1,24 @@
+[package]
+name = "ghost-mcp"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "MCP server exposing Ghost Engine as AI-agent browser tools"
+
+[[bin]]
+name = "ghost-mcp"
+path = "src/main.rs"
+
+[features]
+default = ["headless-shell", "js-jit"]
+headless-shell = ["ghost-core/headless-shell"]
+js-jit = ["ghost-core/js-jit"]
+
+[dependencies]
+ghost-core = { path = "../ghost-core" }
+ghost-interceptor = { path = "../ghost-interceptor" }
+ghost-serializer = { path = "../ghost-serializer" }
+ghost-interact = { path = "../ghost-interact" }
+base64 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }

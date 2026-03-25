@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T4: WebGL Canvas</title>
+</head>
+<body>
+  <h1>WebGL Test</h1>
+  <canvas id="gl-canvas" width="800" height="600"></canvas>
+  <p id="status">loading</p>
+
+  <script>
+    // Attempts WebGL — expected to fail or degrade in headless Servo.
+    var canvas = document.getElementById("gl-canvas");
+    var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+
+    if (gl) {
+      gl.clearColor(0.2, 0.3, 0.4, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      document.getElementById("status").textContent = "webgl-ok";
+      document.title = "Ghost T4: WebGL OK";
+    } else {
+      document.getElementById("status").textContent = "webgl-unsupported";
+      document.title = "Ghost T4: WebGL Unsupported";
+    }
+  </script>
+</body>
+</html>

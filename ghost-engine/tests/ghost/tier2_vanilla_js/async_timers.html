@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T2: Async Timers</title>
+</head>
+<body>
+  <p id="step">0</p>
+  <p id="status">loading</p>
+
+  <script>
+    // Tests that the settle loop keeps the engine alive for async callbacks.
+    var step = 0;
+
+    function advance() {
+      step++;
+      document.getElementById("step").textContent = String(step);
+    }
+
+    // Chain: 0ms → 50ms → 100ms → done
+    setTimeout(function () {
+      advance(); // step 1
+      setTimeout(function () {
+        advance(); // step 2
+        setTimeout(function () {
+          advance(); // step 3
+          document.getElementById("status").textContent = "ready";
+          document.title = "Ghost T2: Timers Done";
+        }, 100);
+      }, 50);
+    }, 0);
+  </script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T3: React Todo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 500px; margin: 2rem auto; }
+    .done { text-decoration: line-through; color: #999; }
+    li { cursor: pointer; padding: 0.25rem 0; }
+    input { padding: 0.5rem; width: 70%; }
+    button { padding: 0.5rem 1rem; }
+  </style>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    var e = React.createElement;
+
+    function TodoApp() {
+      var todosState = React.useState([
+        { id: 1, text: "Load page in Ghost", done: false },
+        { id: 2, text: "Extract layout tree", done: false },
+        { id: 3, text: "Serialize for LLM", done: false }
+      ]);
+      var todos = todosState[0];
+      var setTodos = todosState[1];
+
+      var inputState = React.useState("");
+      var inputVal = inputState[0];
+      var setInput = inputState[1];
+
+      React.useEffect(function () {
+        document.title = "Ghost T3: React Todo (" + todos.length + " items)";
+      }, [todos]);
+
+      // Signal ready after mount.
+      React.useEffect(function () {
+        var meta = document.createElement("meta");
+        meta.name = "ghost-status";
+        meta.content = "ready";
+        document.head.appendChild(meta);
+      }, []);
+
+      function addTodo() {
+        if (!inputVal.trim()) return;
+        setTodos(todos.concat([{
+          id: Date.now(),
+          text: inputVal.trim(),
+          done: false
+        }]));
+        setInput("");
+      }
+
+      function toggleTodo(id) {
+        setTodos(todos.map(function (t) {
+          return t.id === id ? { id: t.id, text: t.text, done: !t.done } : t;
+        }));
+      }
+
+      return e("div", null,
+        e("h1", null, "Todo List"),
+        e("div", null,
+          e("input", {
+            id: "todo-input",
+            type: "text",
+            value: inputVal,
+            placeholder: "Add a task…",
+            onChange: function (ev) { setInput(ev.target.value); }
+          }),
+          e("button", { id: "add-btn", onClick: addTodo }, "Add")
+        ),
+        e("ul", { id: "todo-list" },
+          todos.map(function (todo) {
+            return e("li", {
+              key: todo.id,
+              className: todo.done ? "done" : "",
+              "data-id": todo.id,
+              onClick: function () { toggleTodo(todo.id); }
+            }, todo.text);
+          })
+        ),
+        e("p", { id: "summary" },
+          todos.filter(function (t) { return !t.done; }).length + " remaining"
+        )
+      );
+    }
+
+    var root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(e(TodoApp));
+  </script>
+</body>
+</html>

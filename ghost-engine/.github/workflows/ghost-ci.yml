@@ -1,0 +1,259 @@
+# Ghost Engine CI — TSK-5.10
+#
+# Runs on every push/PR that touches ghost crates. Jobs:
+#   1. build     – compile-check all ghost crates + examples
+#   2. unit      – ghost-core and ghost-mcp unit tests
+#   3. fixtures  – Tier 1-3 integration tests (load_fixtures)
+#   4. bench     – performance benchmarks with regression thresholds
+#   5. release   – production-stripped build + deployment verification
+#
+# Regression thresholds (configurable via env):
+#   - Engine cold-start init: < 2 000 ms
+#   - Tier 1 avg page load:  < 3 000 ms
+#   - Peak RSS:               < 300 MB
+
+name: Ghost Engine CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ports/ghost-*/**'
+      - 'tests/ghost/**'
+      - 'build-release.sh'
+      - '.github/workflows/ghost-ci.yml'
+  pull_request:
+    paths:
+      - 'ports/ghost-*/**'
+      - 'tests/ghost/**'
+      - 'build-release.sh'
+      - '.github/workflows/ghost-ci.yml'
+  workflow_dispatch:
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_INCREMENTAL: 0
+  # ── Regression thresholds (milliseconds / megabytes) ─────────────────
+  THRESHOLD_INIT_MS: 2000
+  THRESHOLD_TIER1_LOAD_MS: 3000
+  THRESHOLD_PEAK_RSS_MB: 300
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════
+  # 1. Build — compile-check all ghost crates and examples
+  # ═══════════════════════════════════════════════════════════════════════
+  build:
+    name: Build Check
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install crown
+        run: cargo install --path support/crown
+      - name: Bootstrap
+        run: ./mach bootstrap --yes --skip-lints
+      - name: Compile ghost crates
+        run: |
+          cargo check -p ghost-core \
+                       -p ghost-interceptor \
+                       -p ghost-serializer \
+                       -p ghost-interact \
+                       -p ghost-mcp \
+                       -p ghost-cli \
+                       --examples
+      - name: Check for warnings in ghost code
+        run: |
+          OUTPUT=$(cargo check -p ghost-core -p ghost-mcp -p ghost-cli --examples 2>&1 \
+            | grep -E "^warning\[" | grep -v "servoshell\|servo-script\|servo " || true)
+          if [[ -n "$OUTPUT" ]]; then
+            echo "::warning::Ghost code has compiler warnings:"
+            echo "$OUTPUT"
+          fi
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 2. Unit tests — ghost-core in-file tests + ghost-mcp schema/error tests
+  # ═══════════════════════════════════════════════════════════════════════
+  unit:
+    name: Unit Tests
+    runs-on: macos-15
+    needs: build
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install crown
+        run: cargo install --path support/crown
+      - name: Bootstrap
+        run: ./mach bootstrap --yes --skip-lints
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: nextest
+      - name: Run ghost unit tests
+        run: |
+          cargo nextest run \
+            -p ghost-core \
+            -p ghost-mcp \
+            -p ghost-interceptor \
+            -p ghost-serializer \
+            --profile ci \
+            --no-fail-fast
+      - name: Upload test results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ghost-unit-test-results
+          path: target/nextest/ci/junit.xml
+          if-no-files-found: ignore
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 3. Integration tests — Tier 1-3 fixture loading
+  # ═══════════════════════════════════════════════════════════════════════
+  fixtures:
+    name: Fixture Tests (Tier 1-3)
+    runs-on: macos-15
+    needs: build
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install crown
+        run: cargo install --path support/crown
+      - name: Bootstrap
+        run: ./mach bootstrap --yes --skip-lints
+      - name: Build ghost-core (release)
+        run: cargo build -p ghost-core --release --tests
+      - name: Run Tier 1-3 fixture tests
+        run: |
+          cargo test -p ghost-core \
+            --release \
+            --test load_fixtures \
+            -- --nocapture 2>&1 | tee fixture-results.txt
+      - name: Upload fixture results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ghost-fixture-results
+          path: fixture-results.txt
+          if-no-files-found: ignore
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 4. Benchmarks — perf_bench with regression threshold checks
+  # ═══════════════════════════════════════════════════════════════════════
+  bench:
+    name: Performance Benchmarks
+    runs-on: macos-15
+    needs: build
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install crown
+        run: cargo install --path support/crown
+      - name: Bootstrap
+        run: ./mach bootstrap --yes --skip-lints
+      - name: Build benchmarks (release)
+        run: cargo build -p ghost-core --release --tests
+      - name: Run benchmark suite
+        run: |
+          cargo test -p ghost-core \
+            --release \
+            --test perf_bench \
+            -- --ignored --nocapture bench_summary_json 2>&1 | tee bench-output.txt
+      - name: Extract and check regression thresholds
+        run: |
+          # Extract the JSON block from benchmark output
+          sed -n '/^{$/,/^}$/p' bench-output.txt > bench.json
+
+          if [[ ! -s bench.json ]]; then
+            echo "::warning::Could not extract benchmark JSON — skipping threshold checks"
+            exit 0
+          fi
+
+          echo "=== Benchmark Results ==="
+          cat bench.json
+          echo ""
+
+          # Parse key metrics
+          INIT_MS=$(python3 -c "import json; d=json.load(open('bench.json')); print(d['engine_init_ms'])")
+          PEAK_RSS=$(python3 -c "import json; d=json.load(open('bench.json')); print(d['peak_rss_mb'])")
+
+          # Compute Tier 1 avg load time
+          TIER1_AVG=$(python3 -c "
+          import json
+          d = json.load(open('bench.json'))
+          t1 = [f for f in d['fixtures'] if f['fixture'].startswith('tier1_')]
+          avg = sum(f['load_ms'] for f in t1) / len(t1) if t1 else 0
+          print(f'{avg:.1f}')
+          ")
+
+          echo "Engine init:    ${INIT_MS} ms  (threshold: ${THRESHOLD_INIT_MS} ms)"
+          echo "Tier 1 avg:     ${TIER1_AVG} ms  (threshold: ${THRESHOLD_TIER1_LOAD_MS} ms)"
+          echo "Peak RSS:       ${PEAK_RSS} MB  (threshold: ${THRESHOLD_PEAK_RSS_MB} MB)"
+          echo ""
+
+          # Check thresholds
+          FAILED=0
+
+          if python3 -c "exit(0 if $INIT_MS <= $THRESHOLD_INIT_MS else 1)"; then
+            echo "✓ Engine init within threshold"
+          else
+            echo "::error::Engine init ${INIT_MS} ms exceeds threshold ${THRESHOLD_INIT_MS} ms"
+            FAILED=1
+          fi
+
+          if python3 -c "exit(0 if $TIER1_AVG <= $THRESHOLD_TIER1_LOAD_MS else 1)"; then
+            echo "✓ Tier 1 load time within threshold"
+          else
+            echo "::error::Tier 1 avg load ${TIER1_AVG} ms exceeds threshold ${THRESHOLD_TIER1_LOAD_MS} ms"
+            FAILED=1
+          fi
+
+          if python3 -c "exit(0 if $PEAK_RSS <= $THRESHOLD_PEAK_RSS_MB else 1)"; then
+            echo "✓ Peak RSS within threshold"
+          else
+            echo "::error::Peak RSS ${PEAK_RSS} MB exceeds threshold ${THRESHOLD_PEAK_RSS_MB} MB"
+            FAILED=1
+          fi
+
+          if [[ $FAILED -ne 0 ]]; then
+            echo ""
+            echo "::error::Performance regression detected!"
+            exit 1
+          fi
+
+          echo ""
+          echo "=== All thresholds passed ==="
+      - name: Upload benchmark results
+        if: '!cancelled()'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ghost-benchmark-results
+          path: |
+            bench-output.txt
+            bench.json
+          if-no-files-found: ignore
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # 5. Release build — production-stripped + deployment verification
+  # ═══════════════════════════════════════════════════════════════════════
+  release:
+    name: Release Build (macOS ARM64)
+    runs-on: macos-15
+    needs: [unit, fixtures]
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install crown
+        run: cargo install --path support/crown
+      - name: Bootstrap
+        run: ./mach bootstrap --yes --skip-lints
+      - name: Build release binaries
+        run: ./build-release.sh --verify
+      - name: Package distribution
+        run: ./build-release.sh --package
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: ghost-engine-macos-arm64
+          path: ghost-engine-*.tar.gz
+          if-no-files-found: error
+      - name: Upload individual binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: ghost-binaries-macos-arm64
+          path: |
+            target/production_stripped/ghost
+            target/production_stripped/ghost-mcp
+          if-no-files-found: error

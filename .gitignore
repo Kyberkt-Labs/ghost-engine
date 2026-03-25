@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Rust
+target/
+**/target/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Local profiling and traces
+*.pftrace
+
+# Vendored Servo local build environment
+ghost-engine/vendor/servo/.venv/
+ghost-engine/vendor/servo/python/_virtualenvs/
+
+# Nested git metadata from vendored repositories
+ghost-engine/vendor/servo/.git/
+
+# Servo generated artifacts
+ghost-engine/vendor/servo/resources/user-agent-js/
+ghost-engine/vendor/servo/servo-data/

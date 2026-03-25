@@ -1,0 +1,17 @@
+[package]
+name = "ghost-serializer"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Token-optimized serialization of Ghost Engine layout trees for LLM consumption — JSON and Markdown formats with ghost-id injection"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = ["headless-shell", "js-jit"]
+headless-shell = ["ghost-interceptor/headless-shell"]
+js-jit = ["ghost-interceptor/js-jit"]
+
+[dependencies]
+ghost-interceptor = { path = "../ghost-interceptor" }

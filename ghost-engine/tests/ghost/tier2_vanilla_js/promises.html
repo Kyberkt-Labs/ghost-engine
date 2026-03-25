@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T2: Promises</title>
+</head>
+<body>
+  <p id="result">pending</p>
+  <p id="status">loading</p>
+
+  <script>
+    // Tests Promise / microtask execution in SpiderMonkey.
+    function asyncCompute(value) {
+      return new Promise(function (resolve) {
+        resolve(value * 2);
+      });
+    }
+
+    asyncCompute(21)
+      .then(function (result) {
+        document.getElementById("result").textContent = String(result);
+        return asyncCompute(result);
+      })
+      .then(function (result) {
+        // result should be 84
+        var el = document.createElement("p");
+        el.id = "final";
+        el.textContent = "final:" + result;
+        document.body.appendChild(el);
+
+        document.getElementById("status").textContent = "ready";
+        document.title = "Ghost T2: Promises Done";
+      });
+  </script>
+</body>
+</html>

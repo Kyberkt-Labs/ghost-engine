@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T4: Deep DOM</title>
+  <style>
+    .node { padding-left: 2px; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Deep DOM Stress Test</h1>
+  <div id="root"></div>
+  <p id="depth">0</p>
+  <p id="status">loading</p>
+
+  <script>
+    // Creates a deeply nested DOM tree (5000 levels) to stress the layout engine.
+    var depth = 5000;
+    var current = document.getElementById("root");
+
+    for (var i = 0; i < depth; i++) {
+      var child = document.createElement("div");
+      child.className = "node";
+      child.setAttribute("data-depth", String(i));
+      if (i === depth - 1) {
+        child.textContent = "leaf@" + i;
+      }
+      current.appendChild(child);
+      current = child;
+    }
+
+    document.getElementById("depth").textContent = "depth:" + depth;
+    document.getElementById("status").textContent = "ready";
+    document.title = "Ghost T4: Deep DOM " + depth;
+  </script>
+</body>
+</html>

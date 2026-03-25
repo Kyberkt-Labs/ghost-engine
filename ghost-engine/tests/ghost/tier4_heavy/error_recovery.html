@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T4: Error Recovery</title>
+</head>
+<body>
+  <h1>JS Error Recovery Test</h1>
+  <p id="phase">starting</p>
+
+  <script>
+    // Phase 1: trigger a reference error (caught globally)
+    window.onerror = function(msg, src, line, col, err) {
+      document.getElementById("phase").textContent = "error-caught";
+    };
+
+    // Phase 2: intentional errors that should not crash the engine
+    try {
+      // Access undefined variable
+      void undefinedVariable.property;
+    } catch (e) {
+      // Swallowed as expected
+    }
+
+    // Phase 3: stack overflow via infinite recursion (caught)
+    try {
+      (function recurse() { recurse(); })();
+    } catch (e) {
+      // InternalError: too much recursion — expected
+    }
+
+    // Phase 4: unsupported APIs — call without crashing
+    var results = [];
+
+    // Notification API
+    if (typeof Notification !== "undefined") {
+      results.push("notification:yes");
+    } else {
+      results.push("notification:no");
+    }
+
+    // Speech synthesis
+    if (typeof speechSynthesis !== "undefined") {
+      results.push("speech:yes");
+    } else {
+      results.push("speech:no");
+    }
+
+    // Gamepad API
+    if (typeof navigator.getGamepads === "function") {
+      results.push("gamepad:yes");
+    } else {
+      results.push("gamepad:no");
+    }
+
+    // Bluetooth API
+    if (typeof navigator.bluetooth !== "undefined") {
+      results.push("bluetooth:yes");
+    } else {
+      results.push("bluetooth:no");
+    }
+
+    // USB API
+    if (typeof navigator.usb !== "undefined") {
+      results.push("usb:yes");
+    } else {
+      results.push("usb:no");
+    }
+
+    document.getElementById("phase").textContent = results.join(",");
+    document.title = "Ghost T4: Error Recovery Done";
+  </script>
+</body>
+</html>

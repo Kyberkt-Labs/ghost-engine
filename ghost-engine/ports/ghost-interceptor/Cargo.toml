@@ -1,0 +1,19 @@
+[package]
+name = "ghost-interceptor"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Layout tree extraction layer for Ghost Engine — extracts DOM geometry via Servo's JS evaluation API"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = ["headless-shell", "js-jit"]
+headless-shell = ["ghost-core/headless-shell"]
+js-jit = ["ghost-core/js-jit"]
+
+[dependencies]
+ghost-core = { path = "../ghost-core" }
+log = { workspace = true }
+servo = { workspace = true }

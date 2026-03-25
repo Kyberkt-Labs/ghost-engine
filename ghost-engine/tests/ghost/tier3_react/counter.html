@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T3: React Counter</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    // Minimal React app — no JSX, no build step.
+    // Tests that SpiderMonkey can execute React's runtime.
+    var e = React.createElement;
+
+    function Counter() {
+      var state = React.useState(0);
+      var count = state[0];
+      var setCount = state[1];
+
+      React.useEffect(function () {
+        document.title = "Ghost T3: React Count " + count;
+
+        // Signal ready after first render.
+        if (count === 0) {
+          var meta = document.getElementById("ghost-status");
+          if (!meta) {
+            meta = document.createElement("meta");
+            meta.id = "ghost-status";
+            meta.name = "ghost-status";
+            document.head.appendChild(meta);
+          }
+          meta.content = "ready";
+        }
+      }, [count]);
+
+      return e("div", null,
+        e("h1", null, "React Counter"),
+        e("p", { id: "count" }, "Count: " + count),
+        e("button", {
+          id: "increment",
+          onClick: function () { setCount(count + 1); }
+        }, "Increment"),
+        e("button", {
+          id: "decrement",
+          onClick: function () { setCount(count - 1); }
+        }, "Decrement")
+      );
+    }
+
+    var root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(e(Counter));
+  </script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T4: Web Worker</title>
+</head>
+<body>
+  <h1>Web Worker Test</h1>
+  <p id="result">pending</p>
+  <p id="status">loading</p>
+
+  <script>
+    // Attempts to spawn a Web Worker via a Blob URL.
+    // May fail in headless Servo if Worker support is incomplete.
+    try {
+      var blob = new Blob([
+        'self.onmessage = function(e) { self.postMessage(e.data * 2); };'
+      ], { type: "application/javascript" });
+      var url = URL.createObjectURL(blob);
+      var worker = new Worker(url);
+
+      worker.onmessage = function (e) {
+        document.getElementById("result").textContent = "result:" + e.data;
+        document.getElementById("status").textContent = "ready";
+        document.title = "Ghost T4: Worker OK";
+        worker.terminate();
+        URL.revokeObjectURL(url);
+      };
+
+      worker.onerror = function (e) {
+        document.getElementById("result").textContent = "worker-error";
+        document.getElementById("status").textContent = "error";
+        document.title = "Ghost T4: Worker Error";
+      };
+
+      worker.postMessage(21);
+
+      // Timeout fallback in case the worker never responds.
+      setTimeout(function () {
+        if (document.getElementById("status").textContent === "loading") {
+          document.getElementById("status").textContent = "timeout";
+          document.title = "Ghost T4: Worker Timeout";
+        }
+      }, 3000);
+    } catch (e) {
+      document.getElementById("result").textContent = "exception:" + e.message;
+      document.getElementById("status").textContent = "exception";
+      document.title = "Ghost T4: Worker Exception";
+    }
+  </script>
+</body>
+</html>

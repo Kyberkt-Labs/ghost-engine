@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ghost T2: DOM Manipulation</title>
+</head>
+<body>
+  <h1 id="heading">Initial Heading</h1>
+  <ul id="list"></ul>
+  <p id="status">loading</p>
+
+  <script>
+    // Synchronous DOM manipulation.
+    document.getElementById("heading").textContent = "DOM Manipulation Test";
+
+    const items = ["Alpha", "Bravo", "Charlie", "Delta"];
+    const list = document.getElementById("list");
+    items.forEach(function (item) {
+      const li = document.createElement("li");
+      li.textContent = item;
+      list.appendChild(li);
+    });
+
+    document.getElementById("status").textContent = "ready";
+    document.title = "Ghost T2: DOM Ready";
+  </script>
+</body>
+</html>

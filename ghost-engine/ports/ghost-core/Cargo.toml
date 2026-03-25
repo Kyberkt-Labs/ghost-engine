@@ -1,0 +1,28 @@
+[package]
+name = "ghost-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Core embedding layer for Ghost Engine's patched Servo runtime"
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = ["headless-shell", "js-jit"]
+headless-shell = ["servoshell/headless-shell"]
+js-jit = ["servoshell/js_jit"]
+tracing = ["servoshell/tracing"]
+tracing-perfetto = ["tracing", "servoshell/tracing-perfetto"]
+
+[dependencies]
+dpi = { workspace = true }
+libc = { workspace = true }
+log = { workspace = true }
+servo = { workspace = true }
+image = { workspace = true }
+servoshell = { path = "../servoshell", default-features = false }
+url = { workspace = true }
+
+[dev-dependencies]
+ghost-interceptor = { path = "../ghost-interceptor" }
