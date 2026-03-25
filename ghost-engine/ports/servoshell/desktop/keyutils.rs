@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![allow(dead_code)]
+
 use keyboard_types::{Code, Key, KeyState, Location, Modifiers, NamedKey};
 use servo::KeyboardEvent;
 use winit::event::{ElementState, KeyEvent};

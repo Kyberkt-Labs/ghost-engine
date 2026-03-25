@@ -3,13 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
+#[allow(dead_code)]
 static COMMON_PLUGINS: &[&str] = &include!("gstreamer_plugin_lists/common.rs.in");
 #[cfg(target_os = "windows")]
 static WINDOWS_PLUGINS: &[&str] = &include!("gstreamer_plugin_lists/windows.rs.in");
 #[cfg(target_os = "macos")]
+#[allow(dead_code)]
 static MACOS_PLUGINS: &[&str] = &include!("gstreamer_plugin_lists/macos.rs.in");
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
+#[allow(dead_code)]
 pub(crate) fn gstreamer_plugins() -> Vec<String> {
     let mut plugins = Vec::from(COMMON_PLUGINS);
     #[cfg(target_os = "windows")]

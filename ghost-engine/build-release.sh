@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Ghost Engine — Production Release Build (TSK-5.9)
 #
-# Builds optimized, stripped single binaries for both `ghost` (CLI)
-# and `ghost-mcp` (MCP server) with full LTO.
+# Builds optimized, stripped single binaries for `ghost` (CLI),
+# `ghost-cli` (CLI alias), and `ghost-mcp` (MCP server) with full LTO.
 #
 # Usage:
-#   ./build-release.sh              # build both binaries for current platform
+#   ./build-release.sh              # build all binaries for current platform
 #   ./build-release.sh --size       # build and report binary sizes
 #   ./build-release.sh --verify     # build, then verify single-binary deployment
 #   ./build-release.sh --package    # build + verify + create dist/ tarball
@@ -18,10 +18,18 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 PROFILE="production-stripped"
-TARGET_DIR="target/${PROFILE//-/_}"
+TARGET_DIR="target/${PROFILE}"
 DIST_DIR="dist"
 
-BINARIES=("ghost:ghost-cli" "ghost-mcp:ghost-mcp")
+# Format: BIN_NAME:PKG_NAME — builds package and expects binary BIN_NAME
+BUILD_TARGETS=("ghost:ghost-cli" "ghost-mcp:ghost-mcp")
+
+# Additional binaries created as copies after build
+# Format: COPY_NAME:SOURCE_BIN
+COPY_TARGETS=("ghost-cli:ghost")
+
+# All output binary names (for reporting / verification / packaging)
+ALL_BINARIES=("ghost" "ghost-cli" "ghost-mcp")
 
 echo "=== Ghost Engine Release Build ==="
 echo "Profile:   $PROFILE"
@@ -29,9 +37,9 @@ echo "Toolchain: $(rustc --version)"
 echo "Host:      $(rustc -vV | grep host | awk '{print $2}')"
 echo ""
 
-# ── Build both binaries ──────────────────────────────────────────────────────
+# ── Build binaries ───────────────────────────────────────────────────────────
 
-for entry in "${BINARIES[@]}"; do
+for entry in "${BUILD_TARGETS[@]}"; do
     BIN_NAME="${entry%%:*}"
     PKG_NAME="${entry##*:}"
 
@@ -46,6 +54,17 @@ for entry in "${BINARIES[@]}"; do
     echo "  ✓ $BINARY"
 done
 
+# ── Create copy targets ──────────────────────────────────────────────────────
+
+for entry in "${COPY_TARGETS[@]}"; do
+    COPY_NAME="${entry%%:*}"
+    SRC_NAME="${entry##*:}"
+
+    echo "Copying $SRC_NAME → $COPY_NAME..."
+    cp -f "$TARGET_DIR/$SRC_NAME" "$TARGET_DIR/$COPY_NAME"
+    echo "  ✓ $TARGET_DIR/$COPY_NAME"
+done
+
 echo ""
 echo "=== Build Complete ==="
 
@@ -54,16 +73,14 @@ echo "=== Build Complete ==="
 show_sizes() {
     echo ""
     echo "=== Binary Sizes ==="
-    for entry in "${BINARIES[@]}"; do
-        BIN_NAME="${entry%%:*}"
+    for BIN_NAME in "${ALL_BINARIES[@]}"; do
         BINARY="$TARGET_DIR/$BIN_NAME"
         SIZE=$(ls -lh "$BINARY" | awk '{print $5}')
         echo "  $BIN_NAME: $SIZE"
     done
     if command -v size &>/dev/null; then
         echo ""
-        for entry in "${BINARIES[@]}"; do
-            BIN_NAME="${entry%%:*}"
+        for BIN_NAME in "${ALL_BINARIES[@]}"; do
             echo "  ── $BIN_NAME sections ──"
             size "$TARGET_DIR/$BIN_NAME" 2>/dev/null || true
         done
@@ -78,8 +95,7 @@ verify_deployment() {
 
     local all_ok=true
 
-    for entry in "${BINARIES[@]}"; do
-        BIN_NAME="${entry%%:*}"
+    for BIN_NAME in "${ALL_BINARIES[@]}"; do
         BINARY="$TARGET_DIR/$BIN_NAME"
 
         echo ""
@@ -149,8 +165,7 @@ package_dist() {
     rm -rf "$DIST_DIR"
     mkdir -p "$DIST_DIR"
 
-    for entry in "${BINARIES[@]}"; do
-        BIN_NAME="${entry%%:*}"
+    for BIN_NAME in "${ALL_BINARIES[@]}"; do
         cp "$TARGET_DIR/$BIN_NAME" "$DIST_DIR/"
     done
 
@@ -195,6 +210,7 @@ case "$FLAG" in
         echo ""
         echo "Run CLI with:"
         echo "  $TARGET_DIR/ghost <url>"
+        echo "  $TARGET_DIR/ghost-cli <url>"
         echo "  $TARGET_DIR/ghost --interactive <url>"
         echo ""
         echo "Run MCP server with:"

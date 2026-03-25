@@ -52,6 +52,7 @@ pub(crate) struct ServoShellPreferences {
     /// Whether or not to attempt clean shutdown.
     pub clean_shutdown: bool,
     /// Enable native window's titlebar and decorations.
+    #[allow(dead_code)]
     pub no_native_titlebar: bool,
     /// URL string of the homepage.
     pub homepage: String,
@@ -72,6 +73,7 @@ pub(crate) struct ServoShellPreferences {
     /// such as the screen of a mobile device.
     pub screen_size_override: Option<Size2D<u32, DeviceIndependentPixel>>,
     /// Whether or not to simulate touch events using mouse events.
+    #[allow(dead_code)]
     pub simulate_touch_events: bool,
     /// If not-None, the path to a file to output the default WebView's rendered output
     /// after waiting for a stable image, this implies `Self::exit_after_load`.

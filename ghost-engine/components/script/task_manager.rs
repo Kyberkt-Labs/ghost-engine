@@ -65,6 +65,7 @@ impl TaskCancellers {
 
 macro_rules! task_source_functions {
     ($self:ident, $task_source:ident, $task_source_name:ident) => {
+        #[allow(dead_code)]
         pub(crate) fn $task_source(&$self) -> TaskSource<'_> {
             TaskSource {
                 task_manager: $self,
